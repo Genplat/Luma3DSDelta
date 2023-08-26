@@ -1,5 +1,5 @@
 /*
-*   This file is part of Luma3DS
+*   This file is part of Luma3DSDelta
 *   Copyright (C) 2016-2020 Aurora Wright, TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
@@ -24,6 +24,9 @@
 *         reasonable ways as different from the original version.
 */
 
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <3ds.h>
 #include <3ds/os.h>
 #include "menus.h"
@@ -44,34 +47,42 @@
 #include "luma_config.h"
 
 Menu rosalinaMenu = {
-    "Rosalina menu",
+    "RosalinaDelta Menu",
     {
         { "Take screenshot", METHOD, .method = &RosalinaMenu_TakeScreenshot },
         { "Change screen brightness", METHOD, .method = &RosalinaMenu_ChangeScreenBrightness },
         { "Cheats...", METHOD, .method = &RosalinaMenu_Cheats },
+        { "Load BootNTR", METHOD, .method = &RosalinaMenu_BootNTR },
         { "", METHOD, .method = PluginLoader__MenuCallback},
         { "Process list", METHOD, .method = &RosalinaMenu_ProcessList },
         { "Debugger options...", MENU, .menu = &debuggerMenu },
         { "System configuration...", MENU, .menu = &sysconfigMenu },
         { "Screen filters...", MENU, .menu = &screenFiltersMenu },
-        { "New 3DS menu...", MENU, .menu = &N3DSMenu, .visibility = &menuCheckN3ds },
+        { "New 3DS menu...", MENU, .menu = &N3DSMenu },
         { "Miscellaneous options...", MENU, .menu = &miscellaneousMenu },
         { "Save settings", METHOD, .method = &RosalinaMenu_SaveSettings },
+        { "Real-Time Saver", METHOD, .method = &RosalinaMenu_RTSaver },
         { "Power off", METHOD, .method = &RosalinaMenu_PowerOff },
         { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
         { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits },
-        { "Debug info", METHOD, .method = &RosalinaMenu_ShowDebugInfo, .visibility = &rosalinaMenuShouldShowDebugInfo },
+        { "Debug info", METHOD, .method = &RosalinaMenu_ShowDebugInfo },
         {},
     }
 };
 
-bool rosalinaMenuShouldShowDebugInfo(void)
-{
-    // Don't show on release builds
-
-    s64 out;
-    svcGetSystemInfo(&out, 0x10000, 0x200);
-    return out == 0;
+void RosalinaMenu_BootNTR(void) {
+    const char *fileName = menuCheckN3ds() ? "ntr.n3ds.bin" : "ntr.o3ds.bin";
+    FILE *binFile = fopen(fileName, "rb");
+    fseek(binFile, 0, SEEK_END);
+    long fileSize = ftell(binFile);
+    fseek(binFile, 0, SEEK_SET);
+    unsigned char *buffer = (unsigned char *)malloc(fileSize);
+    fread(buffer, 1, fileSize, binFile);
+    fclose(binFile);
+    void (*binFunction)() = (void (*)())buffer;
+    binFunction();
+    free(buffer);
+    while(!(waitInput() & KEY_B) && !menuShouldExit);
 }
 
 void RosalinaMenu_SaveSettings(void)
@@ -171,13 +182,15 @@ void RosalinaMenu_ShowCredits(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "Rosalina -- Luma3DS credits");
+        Draw_DrawString(10, 10, COLOR_TITLE, "RosalinaDelta -- Luma3DS Delta credits");
 
-        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "Luma3DS (c) 2016-2023 AuroraWright, TuxSH") + SPACING_Y;
+        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "Luma3DS Delta (c) 2023 Genplat") + SPACING_Y;
 
+        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Luma3DS by AuroraWright, TuxSH");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "3DSX loading code by fincs");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Networking code & basic GDB functionality by Stary");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "InputRedirection by Stary (PoC by ShinyQuagsire)");
+        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "BootNTR By Naquitas");
 
         posY += 2 * SPACING_Y;
 
@@ -186,7 +199,7 @@ void RosalinaMenu_ShowCredits(void)
                 "Special thanks to:\n"
                 "  fincs, WinterMute, mtheall, piepie62,\n"
                 "  Luma3DS contributors, libctru contributors,\n"
-                "  other people"
+                "  Unknown_404, other people"
             ));
 
         Draw_FlushFramebuffer();
