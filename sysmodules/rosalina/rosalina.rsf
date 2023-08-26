@@ -1,5 +1,5 @@
 BasicInfo:
-  Title                   : rosalina
+  Title                   : rosalinadelta
   CompanyCode             : "00"
   ProductCode             : lennybuilder
   ContentType             : Application
@@ -8,7 +8,7 @@ BasicInfo:
 TitleInfo:
   UniqueId                : 0x69
   Category                : Base
-  Version                 : 2
+  Version                 : 3
 
 Option:
   UseOnSD                 : false
@@ -62,6 +62,6 @@ AccessControlInfo:
     - CategorySystemApplication
 
 SystemControlInfo:
-  SaveDataSize: 0KB # It doesn't use any save data.
+  SaveDataSize: 10240KB # It doesn't use any save data.
   RemasterVersion: 0
   StackSize: 0x1000
