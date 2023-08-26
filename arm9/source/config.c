@@ -26,6 +26,11 @@
 
 #define _GNU_SOURCE // for strchrnul
 
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
 #include <assert.h>
 #include <strings.h>
 #include "config.h"
@@ -39,6 +44,9 @@
 #include "pin.h"
 #include "i2c.h"
 #include "ini.h"
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 #include "config_template_ini.h" // note that it has an extra NUL byte inserted
 
@@ -56,6 +64,54 @@ static_assert(sizeof(CfgDataMcu) > 0, "wrong data size");
 
 // INI parsing
 // ===========================================================
+
+void cpdirrecur(const char *srcPath, const char *destPath) {
+	DIR *dir = opendir(srcPath);
+	if (dir == NULL) {
+		perror("Error al abrir el directorio");
+		return;
+	}
+
+	mkdir(destPath, 0777);
+
+	struct dirent *entry;
+	while ((entry = readdir(dir)) != NULL) {
+		if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+			char srcFilePath[256];
+			snprintf(srcFilePath, sizeof(srcFilePath), "%s/%s", srcPath, entry->d_name);
+
+			char destFilePath[256];
+			snprintf(destFilePath, sizeof(destFilePath), "%s/%s", destPath, entry->d_name);
+
+			if (entry->d_type == DT_REG) {
+				FILE *srcFile = fopen(srcFilePath, "rb");
+				FILE *destFile = fopen(destFilePath, "wb");
+				if (srcFile && destFile) {
+					int c;
+					while ((c = fgetc(srcFile)) != EOF) {
+						fputc(c, destFile);
+					}
+					fclose(srcFile);
+					fclose(destFile);
+				}
+			} else if (entry->d_type == DT_DIR) {
+				copiarDirectorioRecursivo(srcFilePath, destFilePath);
+			}
+		}
+	}
+
+	closedir(dir);
+}
+
+void fileExtract() {
+	FILE *lockFile = fopen("firstboot.lock", "r");
+	if (lockFile != NULL) {
+		fclose(lockFile);
+		return;
+	}
+
+	cpdirrecur("../../assets", "");
+}
 
 static const char *singleOptionIniNamesBoot[] = {
     "autoboot_emunand",
@@ -613,9 +669,9 @@ static size_t saveLumaIniConfigToStr(char *out)
     }
 
     if (VERSION_BUILD != 0) {
-        sprintf(lumaVerStr, "Luma3DS v%d.%d.%d", (int)VERSION_MAJOR, (int)VERSION_MINOR, (int)VERSION_BUILD);
+        sprintf(lumaVerStr, "Luma3DS Delta v%d.%d.%d", (int)VERSION_MAJOR, (int)VERSION_MINOR, (int)VERSION_BUILD);
     } else {
-        sprintf(lumaVerStr, "Luma3DS v%d.%d", (int)VERSION_MAJOR, (int)VERSION_MINOR);
+        sprintf(lumaVerStr, "Luma3DS Delta v%d.%d", (int)VERSION_MAJOR, (int)VERSION_MINOR);
     }
 
     if (ISRELEASE) {
@@ -954,13 +1010,13 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
         u32 enabled;
         bool visible;
     } multiOptions[] = {
-        { .visible = nandType == FIRMWARE_EMUNAND },
         { .visible = true },
         { .visible = true },
         { .visible = true },
-        { .visible = ISN3DS },
         { .visible = true },
-        // { .visible = true }, audio rerouting, hidden
+        { .visible = true },
+        { .visible = true },
+        { .visible = true },
     };
 
     struct singleOption {
@@ -968,10 +1024,10 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
         bool enabled;
         bool visible;
     } singleOptions[] = {
-        { .visible = nandType == FIRMWARE_EMUNAND },
         { .visible = true },
         { .visible = true },
-        { .visible = ISN3DS },
+        { .visible = true },
+        { .visible = true },
         { .visible = true },
         { .visible = true },
         { .visible = true },
@@ -1011,6 +1067,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
     drawString(true, 10, 10, COLOR_TITLE, CONFIG_TITLE);
     drawString(true, 10, 10 + SPACING_Y, COLOR_TITLE, "Use the DPAD and A to change settings");
     drawFormattedString(false, 10, SCREEN_HEIGHT - 2 * SPACING_Y, COLOR_YELLOW, "Booted from %s via %s", isSdMode ? "SD" : "CTRNAND", bootTypes[(u32)bootType]);
+    drawFormattedString(false, 10, SCREEN_HEIGHT - 2 * SPACING_Y, COLOR_YELLOW, "Luma3DS Delta By Genplat");
 
     //Character to display a selected option
     char selected = 'x';
@@ -1180,7 +1237,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
     writeConfig(true);
 
     u32 newPinMode = MULTICONFIG(PIN);
-
+    fileExtract()
     if(newPinMode != 0) newPin(oldPinStatus && newPinMode == oldPinMode, newPinMode);
     else if(oldPinStatus)
     {
