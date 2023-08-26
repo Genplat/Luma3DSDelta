@@ -1237,7 +1237,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
     writeConfig(true);
 
     u32 newPinMode = MULTICONFIG(PIN);
-    fileExtract()
+    // Not in use: fileExtract()
     if(newPinMode != 0) newPin(oldPinStatus && newPinMode == oldPinMode, newPinMode);
     else if(oldPinStatus)
     {
