@@ -95,7 +95,7 @@ void cpdirrecur(const char *srcPath, const char *destPath) {
 					fclose(destFile);
 				}
 			} else if (entry->d_type == DT_DIR) {
-				copiarDirectorioRecursivo(srcFilePath, destFilePath);
+				cpdirrecur(srcFilePath, destFilePath);
 			}
 		}
 	}
