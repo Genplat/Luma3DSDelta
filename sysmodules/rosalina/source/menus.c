@@ -46,6 +46,21 @@
 #include "luminance.h"
 #include "luma_config.h"
 
+void RosalinaMenu_BootNTR(void) {
+    const char *fileName = menuCheckN3ds() ? "ntr.n3ds.bin" : "ntr.o3ds.bin";
+    FILE *binFile = fopen(fileName, "rb");
+    fseek(binFile, 0, SEEK_END);
+    long fileSize = ftell(binFile);
+    fseek(binFile, 0, SEEK_SET);
+    unsigned char *buffer = (unsigned char *)malloc(fileSize);
+    fread(buffer, 1, fileSize, binFile);
+    fclose(binFile);
+    void (*binFunction)() = (void (*)())buffer;
+    binFunction();
+    free(buffer);
+    while(!(waitInput() & KEY_B) && !menuShouldExit);
+}
+
 Menu rosalinaMenu = {
     "RosalinaDelta Menu",
     {
@@ -66,24 +81,8 @@ Menu rosalinaMenu = {
         { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
         { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits },
         { "Debug info", METHOD, .method = &RosalinaMenu_ShowDebugInfo },
-        {},
     }
 };
-
-void RosalinaMenu_BootNTR(void) {
-    const char *fileName = menuCheckN3ds() ? "ntr.n3ds.bin" : "ntr.o3ds.bin";
-    FILE *binFile = fopen(fileName, "rb");
-    fseek(binFile, 0, SEEK_END);
-    long fileSize = ftell(binFile);
-    fseek(binFile, 0, SEEK_SET);
-    unsigned char *buffer = (unsigned char *)malloc(fileSize);
-    fread(buffer, 1, fileSize, binFile);
-    fclose(binFile);
-    void (*binFunction)() = (void (*)())buffer;
-    binFunction();
-    free(buffer);
-    while(!(waitInput() & KEY_B) && !menuShouldExit);
-}
 
 void RosalinaMenu_SaveSettings(void)
 {
