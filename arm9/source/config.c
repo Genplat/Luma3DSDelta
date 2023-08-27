@@ -25,7 +25,8 @@
 */
 
 #define _GNU_SOURCE // for strchrnul
-
+#pragma GCC push_options
+#pragma GCC optimize ("O0") // Desactivar optimización agresiva
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
